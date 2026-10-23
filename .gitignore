@@ -69,3 +69,7 @@ id_rsa*
 id_ed25519*
 known_hosts
 *host_key*
+
+# Sanitizer scratch outputs
+/darkos/p4_restore/
+/darkos/p4_restore.log
