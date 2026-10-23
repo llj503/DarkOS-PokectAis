@@ -52,6 +52,7 @@
 /darkos/screenshots/
 /darkos/tools/*.ps1
 /darkos/dtb/dtb_compare/
+/darkos/release/
 
 # Local only: GammaOS work is kept on disk but not tracked in this repo
 /gammaos/
