@@ -1,0 +1,55 @@
+#!/bin/sh
+(
+LOG=/storage/wifi-fix.log
+exec >>$LOG 2>&1
+echo "=== $(date) wifi-connman fix"
+K=$(uname -r)
+BASE=/usr/lib/kernel-overlays/base/lib/modules/$K/kernel/drivers/net/wireless/rockchip_wlan/aic8800
+
+i=0
+while [ $i -lt 40 ] && [ ! -d /sys/class/net/wlan0 ]; do
+  sleep 1
+  i=$((i+1))
+done
+
+if [ ! -d /sys/class/net/wlan0 ]; then
+  echo "wlan0 absent after ${i}s, insmod AIC modules"
+  insmod "$BASE/aic8800_bsp/aic8800_bsp.ko"
+  insmod "$BASE/aic8800_fdrv/aic8800_fdrv.ko"
+  sleep 6
+fi
+
+if [ ! -d /sys/class/net/wlan0 ]; then
+  echo "still no wlan0"
+  dmesg | grep -iE 'aic|sdio|mmc' | tail -80
+  exit 0
+fi
+
+echo "wlan0 present after ${i}s"
+rfkill unblock wifi
+
+echo "--- connman status before"
+systemctl status connman --no-pager -l 2>&1 | head -30
+
+systemctl restart connman
+sleep 6
+
+echo "--- connman is-active: $(systemctl is-active connman 2>&1)"
+systemctl status connman --no-pager -l 2>&1 | head -40
+echo "--- connman journal"
+journalctl -u connman --no-pager -n 100 2>&1
+
+echo "--- technologies"
+connmanctl technologies 2>&1
+echo "--- enable wifi"
+connmanctl enable wifi 2>&1
+echo "--- scan wifi"
+connmanctl scan wifi 2>&1
+sleep 12
+echo "--- services"
+connmanctl services 2>&1
+echo "--- iw scan"
+iw dev wlan0 scan 2>&1 | grep -E '^BSS|SSID:|signal:' | head -40
+echo "=== done"
+) &
+exit 0

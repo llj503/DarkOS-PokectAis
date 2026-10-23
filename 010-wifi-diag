@@ -1,0 +1,47 @@
+#!/bin/sh
+# One-shot WiFi/SSH diagnostics, written to /storage/wifi-diag.txt
+exec >/storage/wifi-diag.txt 2>&1
+echo "=== date"; date
+echo "=== uname"; uname -a
+echo "=== cmdline"; cat /proc/cmdline
+echo "=== model"; tr -d '\0' </proc/device-tree/model; echo
+echo "=== system.cfg"; grep -E 'wifi|ssh' /storage/.config/system/configs/system.cfg 2>/dev/null
+echo "=== wireless-wlan DT"; for f in /proc/device-tree/wireless-wlan/*; do echo "$f: $(tr -d '\0' <"$f")"; done
+echo "=== lsmod"; lsmod
+echo "=== sdio devices"; ls -l /sys/bus/sdio/devices/ 2>/dev/null
+for d in /sys/bus/sdio/devices/*; do
+  [ -e "$d" ] || continue
+  echo "-- $d"
+  echo "vendor=$(cat "$d/vendor" 2>/dev/null) device=$(cat "$d/device" 2>/dev/null) class=$(cat "$d/class" 2>/dev/null)"
+  ls -l "$d/driver" 2>/dev/null
+done
+echo "=== mmc"; for m in /sys/class/mmc_host/mmc*; do echo "$m"; done
+echo "=== links"; ip -br link 2>/dev/null
+echo "=== iw dev"; iw dev 2>/dev/null
+echo "=== rfkill"; rfkill list 2>/dev/null
+echo "=== connman technologies"; connmanctl technologies 2>/dev/null
+echo "=== connman services"; connmanctl services 2>/dev/null
+echo "=== firmware"; ls -l /var/lib/firmware 2>/dev/null | grep -iE 'aic|8800' | head -30
+echo "=== boot.log"; tail -100 /var/log/boot.log 2>/dev/null
+echo "=== dmesg wifi"; dmesg | grep -iE 'aic|sdio|mmc|wlan|wifi|firmware|cfg80211' | tail -300
+echo "=== dmesg tail"; dmesg | tail -80
+
+K=$(uname -r)
+BASE=/usr/lib/kernel-overlays/base/lib/modules/$K/kernel/drivers/net/wireless/rockchip_wlan/aic8800
+echo "=== manual insmod"
+for m in aic8800_bsp/aic8800_bsp.ko aic8800_fdrv/aic8800_fdrv.ko aic8800_btlpm/aic8800_btlpm.ko; do
+  insmod "$BASE/$m" 2>>/storage/wifi-insmod.err
+  echo "$m rc=$?"
+done
+sleep 5
+echo "=== after insmod lsmod"; lsmod | grep -i aic
+echo "=== after insmod links"; ip -br link 2>/dev/null
+echo "=== after insmod dmesg"; dmesg | tail -120
+echo "=== connman scan"
+rfkill unblock wifi 2>/dev/null
+connmanctl enable wifi 2>/dev/null
+connmanctl scan wifi 2>/dev/null
+sleep 15
+echo "=== services after scan"; connmanctl services 2>/dev/null
+echo "=== iw scan"; iw dev wlan0 scan 2>&1 | head -80
+echo "=== done"

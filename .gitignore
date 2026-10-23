@@ -1,0 +1,70 @@
+# Large artifacts: images, archives, apps, media, vendor binaries
+*.img
+*.img.gz
+*.img.xz
+*.img.zip
+*.apk
+*.zip
+*.xz
+*.gz
+*.zst
+*.tar
+*.tar.*
+*.7z
+*.wav
+*.bmp
+*.raw
+*.bgra
+*.bin
+*.ko
+*.so
+*.dtb
+
+# Extracted stock/vendor roots and one-off dumps
+/ais_root/
+/ais_config/
+/ext_boot/
+/ext_mod/
+/ext_sys/
+/card_diag/
+/toolchain_r/
+/toolchain_r_32/
+/p1_system_fat.img
+/p2_storage_ext4.img
+/card_p2*.img
+/_fdt_*.dtb
+/ais_boot16.bin
+/system_list.txt
+/kernel_config.txt
+/retrohandle_toolchain_*
+/dump_p2.ps1
+/write_p2.ps1
+/gcc_wrapper.sh
+/gxx_wrapper.sh
+/*.log
+/*.png
+
+# Project directories containing images, blobs, logs or third-party trees
+/darkos/boot/
+/darkos/firmware/
+/darkos/logs/
+/darkos/reference/
+/darkos/screenshots/
+/darkos/tools/*.ps1
+/darkos/dtb/dtb_compare/
+
+# Local only: GammaOS work is kept on disk but not tracked in this repo
+/gammaos/
+/docs/images/gammaos-*
+
+# Local Git history backup
+/*.bundle
+
+# Secrets and device identities
+*.pem
+*.key
+*.p12
+id_rsa*
+id_ed25519*
+known_hosts
+*host_key*
