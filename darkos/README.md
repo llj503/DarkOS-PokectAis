@@ -27,13 +27,33 @@
 
 ## 镜像
 
+发布镜像通过 GitHub Release 分卷提供：
+
+<https://github.com/llj503/dArkOS-PokectAis/releases/tag/dArkOS-20261020>
+
 | 文件 | 大小 | SHA-256 |
 | --- | --- | --- |
-| `pocketAis-dArkOS-20261020-autoexpand.img` | 13,019,137,024 B | `9090d128ffe51aef8b4d29735ef6c5f317164bde3f3375d8ffb46ba4c4d9b25f` |
-| `pocketAis-dArkOS-20261020-autoexpand.img.xz` | 3,518,490,016 B | `2e0a0202916c42c1a204ebbfc8e3b3fbf5191271ed653bef99f0356289b8e656` |
+| `pocketAis-dArkOS-20261020-autoexpand-sanitized.img` | 13,019,137,024 B | `2d89014a51db3770c5c98f6fc09e1836d80045501f910a4689dc8b5f903974e5` |
+| `pocketAis-dArkOS-20261020-autoexpand-sanitized.img.xz` | `2975954400` B | `63fbf74521be7655b48cc04830115f53e6a9bcbe6d13488bd088840f1edfcc25` |
 
-镜像不纳入 Git。刷写前先解压 xz，使用 Rufus **DD** 模式或 `dd`；刷写后首次启动会扩展
-`/roms`。
+分卷为 `.img.xz.part-00/01` + `SHA256SUMS.txt`；重组命令见顶层 README。镜像不纳入 Git。
+刷写前先解压 xz，使用 Rufus **DD** 模式或 `dd`；刷写后首次启动会扩展 `/roms`。
+
+### 发布清理流程
+
+发布前从 raw 镜像提取 p4，执行 `image_build/sanitize_p4.sh` 生成干净的 BTRFS rootfs；
+用 `mdel` 删除 p3 FAT 中的 `authorized_keys`；再执行 `image_build/finalize_release.sh`
+锁定账户密码、写入 p3/p4 并校验 raw。清理内容：
+
+- SSH host keys、`/home/ark/.ssh`、`/root/.ssh`、p3 `authorized_keys`
+- NetworkManager WiFi 配置与本地状态
+- `ark` / `root` 密码哈希及 `shadow-`/`gshadow-` 备份
+- `/etc/machine-id`、`/var/lib/dbus/machine-id`
+- shell history、日志、缓存、RetroArch netplay 密码
+
+首次启动会由 `sshd-keygen.service` 重新生成 SSH host keys；`ark` 密码已锁定，
+可在 p3 根目录放 `authorized_keys` 供 firstboot 安装，或在设备上设置密码。WiFi
+需重新配置。
 
 ## 目录
 
@@ -45,6 +65,8 @@ image_build/
   fix_suspend_20261020.py         # 修复 GPU governor 路径、睡眠背光、ES 屏保
   pocketais-autoexpand.sh         # 首次启动扩展 /roms
   pocketais-autoexpand.service
+  sanitize_p4.sh                  # 清理 rootfs 并重建干净 BTRFS
+  finalize_release.sh             # 锁定账户密码、写入 p3/p4、校验 raw
   raw2png.js                      # 调试用帧缓冲转换
 dtb/
   ro520c.dts                      # Rockchip RK3562 EVB1 基础 DTS

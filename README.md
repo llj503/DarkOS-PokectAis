@@ -46,23 +46,45 @@ dArkOS 已验证：
 
 ## 镜像与校验
 
-镜像体积远超 GitHub 单文件限制，**不放进 Git 仓库**。刷写前请核对 SHA-256。
+dArkOS 镜像通过 GitHub Releases **分卷发布**，不放进 Git 仓库：
+
+<https://github.com/llj503/dArkOS-PokectAis/releases/tag/dArkOS-20261020>
 
 | 文件 | 大小 | SHA-256 |
 | --- | --- | --- |
-| `pocketAis-dArkOS-20261020-autoexpand.img` | 13,019,137,024 B | `9090d128ffe51aef8b4d29735ef6c5f317164bde3f3375d8ffb46ba4c4d9b25f` |
-| `pocketAis-dArkOS-20261020-autoexpand.img.xz` | 3,518,490,016 B | `2e0a0202916c42c1a204ebbfc8e3b3fbf5191271ed653bef99f0356289b8e656` |
+| `pocketAis-dArkOS-20261020-autoexpand-sanitized.img` | 13,019,137,024 B | `2d89014a51db3770c5c98f6fc09e1836d80045501f910a4689dc8b5f903974e5` |
+| `pocketAis-dArkOS-20261020-autoexpand-sanitized.img.xz` | `2975954400` B | `63fbf74521be7655b48cc04830115f53e6a9bcbe6d13488bd088840f1edfcc25` |
 
-对应的 `.sha256` 文件在 `darkos/` 目录中。
+Release 资产包括 `.img.xz.part-00`、`.img.xz.part-01` 和 `SHA256SUMS.txt`。
+本版本已清理设备专属数据：SSH host keys、`authorized_keys`、WiFi 配置、账户密码
+哈希、日志/历史、machine-id 和 RetroArch netplay 密码。首次启动会重新生成 SSH
+host keys；`ark` 密码已锁定；WiFi 需重新配置。
+
+### 重组分卷
+
+Linux / macOS：
+
+```bash
+cat pocketAis-dArkOS-20261020-autoexpand-sanitized.img.xz.part-* \
+  > pocketAis-dArkOS-20261020-autoexpand-sanitized.img.xz
+sha256sum pocketAis-dArkOS-20261020-autoexpand-sanitized.img.xz
+xz -d pocketAis-dArkOS-20261020-autoexpand-sanitized.img.xz
+sha256sum pocketAis-dArkOS-20261020-autoexpand-sanitized.img
+```
+
+Windows 用 `copy /b part-00+part-01 image.xz`，再用 7-Zip 解压。
+校验值见 Release 的 `SHA256SUMS.txt` 和 `darkos/*.sha256`。
 
 ## 快速开始
 
-1. 解压 xz（如使用压缩镜像），然后刷写到 TF 卡：
-   - Windows：使用 **Rufus**，选择镜像后务必选 **DD 模式**，目标设备选 TF 卡。
+1. 按上面的步骤重组 xz，核对 SHA 后刷写到 TF 卡：
+   - Windows：使用 **Rufus**，选择 raw 镜像后务必选 **DD 模式**，目标设备选 TF 卡。
    - Linux：`sudo dd if=<image> of=/dev/sdX bs=4M conv=fsync status=progress`
 2. 插入掌机，从 TF 卡启动。首次启动会自动扩展 `/roms` 分区（exFAT）。
 3. 若镜像被重新打包后只启动内置系统，检查并修复 p3 的 GPT 可启动标志和分区类型 GUID。
-4. WiFi、SSH、中文界面、核心选择等功能已集成；详细修复项和构建说明见
+4. WiFi 在 EmulationStation 网络设置中重新配置；SSH 可把公钥放到 FAT 启动分区
+   （p3）根目录的 `authorized_keys`，首次启动脚本会安装给 `ark` 用户。
+5. 中文界面、核心选择等功能已集成；详细修复项和构建说明见
    [`darkos/README.md`](darkos/README.md)。
 
 ## 仓库结构
@@ -70,11 +92,11 @@ dArkOS 已验证：
 ```text
 .
 ├── darkos/
-│   ├── image_build/              # 镜像组装、GPT/睡眠修复、自动扩容
+│   ├── image_build/              # 组装、GPT/睡眠修复、自动扩容、清理/发布
 │   ├── dtb/                      # ro520c DTB 源文件与 DTB 补丁
 │   ├── rootfs/                   # 电池状态/USB 角色 shim 与 systemd 单元
 │   ├── kernel_config.txt         # AisOS 内核配置（参考）
-│   └── *.sha256                  # dArkOS 镜像校验
+│   └── *.sha256                  # 发布镜像校验
 ├── docs/images/                  # README 截图
 ├── 010-wifi-diag                 # dArkOS WiFi/SSH 诊断脚本
 └── 020-wifi-connman              # dArkOS WiFi 修复脚本
@@ -83,7 +105,9 @@ dArkOS 已验证：
 ## 安全说明
 
 - 仓库**不包含**完整磁盘镜像、厂商内核模块/固件、APK、日志、SSH/WiFi 主机密钥、
-  WiFi 密码或 userdata。
+  WiFi 密码或 userdata；发布镜像通过 Release 分卷提供。
+- 发布镜像已清理 SSH host keys、`authorized_keys`、WiFi 配置、账户密码哈希、
+  日志/历史和 machine-id；首次启动会重新生成 host keys，`ark` 密码被锁定。
 - 你自己制作/首次启动后的系统镜像会包含设备专属密钥（SSH host keys、WiFi 凭据等）；
   **不要把这种镜像公开分享**，请自行重新生成。
 - 仓库不包含直接写物理磁盘的脚本；刷写请使用 Rufus DD 或 `dd`，并再次确认目标设备。
