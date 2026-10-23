@@ -1,4 +1,4 @@
-# DarkOS-PokectAis
+# dArkOS-PokectAis
 
 Pocket AIS（RK3562）掌机的 **dArkOS（Linux）** 移植与维护仓库，包含镜像组装/修复脚本、
 设备树源文件、rootfs shim 和移植记录。
